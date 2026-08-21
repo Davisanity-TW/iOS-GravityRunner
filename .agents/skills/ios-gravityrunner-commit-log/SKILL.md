@@ -1,7 +1,7 @@
 ---
 name: ios-gravityrunner-commit-log
 description: >
-  專用於 iOS-GravityRunner 原生 SwiftUI／SpriteKit 專案。每當 backlog 項目完成或使用者列出的 bug/issue 修正並驗證後，建立獨立 Git commit、自動 push 到目前 origin 分支、在對話中以 100 字內繁體中文說明改動，並將 SHA、日期與 80 字內、以遊戲玩家易懂角度撰寫的繁體中文摘要追加到指定 Notion commit 表格；Notion 更新成功後原文輸出該摘要。
+  專用於 iOS-GravityRunner 原生 SwiftUI／SpriteKit 專案。開始任何新 backlog 前，先檢查 Issue & Expectation Tracker 是否有更高優先級的 Issue／Exception；每當 backlog 項目完成或使用者列出的 bug/issue 修正並驗證後，建立獨立 Git commit、自動 push 到目前 origin 分支、在對話中以 100 字內繁體中文說明改動，並將 SHA、日期與 80 字內、以遊戲玩家易懂角度撰寫的繁體中文摘要追加到指定 Notion commit 表格；Notion 更新成功後原文輸出該摘要。
 ---
 
 # iOS GravityRunner Commit Log
@@ -11,7 +11,16 @@ description: >
 - Git repository：`https://github.com/Davisanity-TW/iOS-GravityRunner.git`
 - Notion page：`https://app.notion.com/p/Repo-commit-3c34461aa44e80dca41fea79f30add40?source=copy_link`
 - Notion page ID：`3c34461aa44e80dca41fea79f30add40`
+- Issue／Exception Tracker：`https://app.notion.com/p/3c34461aa44e8013bf55ffc28c6d93b2?v=5344461aa44e83cfa15908f476a9700a&source=copy_link`
 - 使用 Conventional Commits；Notion「說明」最多 80 個中文字，優先描述玩家能感受到的功能、操作、畫面或遊戲體驗，避免只寫技術實作名詞；對話說明 100 字內繁體中文。
+
+## 開始新 backlog 前置檢查
+
+每次準備開始一個新的 backlog 項目時，必須先 fetch 上方的 **Gravity Runner－Issue & Expectation Tracker**，檢查所有尚未完成的 Issue／Exception 及其 Priority、Severity、Blocker 或截止資訊。
+
+1. 若存在比目前 backlog 更優先、會阻擋開發或影響玩家體驗的 Issue／Exception，立即暫停原 backlog，優先處理該 Issue／Exception。
+2. 若沒有更高優先級項目，才依 Task Board 的順序開始原定 backlog。
+3. 將本次檢查結果簡短記在進度說明；若優先級無法判定，先回報判斷依據，不要自行跳過。
 
 ## 收尾流程
 
