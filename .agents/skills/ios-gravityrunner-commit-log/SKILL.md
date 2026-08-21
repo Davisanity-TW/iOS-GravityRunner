@@ -1,7 +1,7 @@
 ---
 name: ios-gravityrunner-commit-log
 description: >
-  專用於 iOS-GravityRunner 原生 SwiftUI／SpriteKit 專案。每當 backlog 項目完成或使用者列出的 bug/issue 修正並驗證後，建立獨立 Git commit、自動 push 到目前 origin 分支、在對話中以 100 字內繁體中文說明改動，並將 SHA、日期與 50 字內繁體中文摘要追加到指定 Notion commit 表格。
+  專用於 iOS-GravityRunner 原生 SwiftUI／SpriteKit 專案。每當 backlog 項目完成或使用者列出的 bug/issue 修正並驗證後，建立獨立 Git commit、自動 push 到目前 origin 分支、在對話中以 100 字內繁體中文說明改動，並將 SHA、日期與 80 字內、以遊戲玩家易懂角度撰寫的繁體中文摘要追加到指定 Notion commit 表格；Notion 更新成功後原文輸出該摘要。
 ---
 
 # iOS GravityRunner Commit Log
@@ -11,7 +11,7 @@ description: >
 - Git repository：`https://github.com/Davisanity-TW/iOS-GravityRunner.git`
 - Notion page：`https://app.notion.com/p/Repo-commit-3c34461aa44e80dca41fea79f30add40?source=copy_link`
 - Notion page ID：`3c34461aa44e80dca41fea79f30add40`
-- 使用 Conventional Commits；Notion 摘要 50 字內繁體中文；對話說明 100 字內繁體中文。
+- 使用 Conventional Commits；Notion「說明」最多 80 個中文字，優先描述玩家能感受到的功能、操作、畫面或遊戲體驗，避免只寫技術實作名詞；對話說明 100 字內繁體中文。
 
 ## 收尾流程
 
@@ -23,8 +23,9 @@ description: >
 4. 建立一次獨立 Conventional Commits commit，不 amend。
 5. 確認目前分支後執行 `git push origin HEAD`；禁止 force push。
 6. 用 `git log -1 --format='%H%n%h%n%ad%n%s' --date=short` 取得資料。
-7. 先 fetch Notion page；首次使用或不確定語法時讀取 `notion://docs/enhanced-markdown-spec`。在既有表格追加一列；若沒有表格，建立日期、Commit、說明三欄表格。避免同一 SHA 重複記錄。
-8. 再次 fetch Notion 確認新列存在，並在對話回報 commit SHA、push、驗證、Notion 狀態與 100 字內繁中改動說明。
+7. 先 fetch Notion page；首次使用或不確定語法時讀取 `notion://docs/enhanced-markdown-spec`。在既有表格追加一列；若沒有表格，建立日期、Commit、說明三欄表格。避免同一 SHA 重複記錄。說明應讓遊戲玩家看懂，例如「玩家現在可以拖曳地圖查看關卡，並用雙指縮放尋找細節」，不要只寫「新增 EditorCanvas pan／zoom 狀態」。
+8. 再次 fetch Notion 確認新列存在，取得該列「說明」的原文；僅在 push 成功且 Notion 更新、驗證都成功後，在對話中逐字輸出 `Notion 說明：<原文>`，不可改寫或省略。
+9. 最後回報 commit SHA、push、驗證、Notion 狀態，以及 100 字內繁中改動說明；同時保留上一點的 Notion 說明原文輸出。
 
 ## 失敗處理
 
