@@ -5,6 +5,7 @@ final class GameScene: SKScene {
     private var gravityDirection: CGFloat = 1
     private var lastUpdate: TimeInterval = 0
     private var verticalVelocity: CGFloat = 0
+    private var canFlipGravity = true
 
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.02, green: 0.05, blue: 0.09, alpha: 1)
@@ -14,6 +15,9 @@ final class GameScene: SKScene {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard canFlipGravity else { return }
+
+        canFlipGravity = false
         gravityDirection *= -1
         verticalVelocity = -gravityDirection * 420
         player.fillColor = gravityDirection > 0 ? .systemMint : .systemYellow
@@ -30,9 +34,11 @@ final class GameScene: SKScene {
         if player.position.y < floor {
             player.position.y = floor
             verticalVelocity = 0
+            canFlipGravity = true
         } else if player.position.y > ceiling {
             player.position.y = ceiling
             verticalVelocity = 0
+            canFlipGravity = true
         }
     }
 
@@ -47,7 +53,7 @@ final class GameScene: SKScene {
         ceiling.position.y = size.height - 48
         addChild(ceiling)
 
-        player.position = CGPoint(x: size.width * 0.25, y: size.height * 0.25)
+        player.position = CGPoint(x: size.width * 0.25, y: 92)
         player.fillColor = .systemMint
         player.strokeColor = .white
         addChild(player)
