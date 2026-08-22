@@ -1,11 +1,16 @@
 import SpriteKit
 
 final class GameScene: SKScene {
+    private enum PlayerState {
+        case grounded
+        case airborne
+    }
+
     private let player = SKShapeNode(rectOf: CGSize(width: 42, height: 42), cornerRadius: 10)
     private var gravityDirection: CGFloat = 1
     private var lastUpdate: TimeInterval = 0
     private var verticalVelocity: CGFloat = 0
-    private var canFlipGravity = true
+    private var playerState: PlayerState = .grounded
 
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.02, green: 0.05, blue: 0.09, alpha: 1)
@@ -15,9 +20,9 @@ final class GameScene: SKScene {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard canFlipGravity else { return }
+        guard playerState == .grounded else { return }
 
-        canFlipGravity = false
+        playerState = .airborne
         gravityDirection *= -1
         verticalVelocity = -gravityDirection * 420
         player.fillColor = gravityDirection > 0 ? .systemMint : .systemYellow
@@ -32,14 +37,16 @@ final class GameScene: SKScene {
         let floor = CGFloat(92)
         let ceiling = size.height - 92
         if player.position.y < floor {
-            player.position.y = floor
-            verticalVelocity = 0
-            canFlipGravity = true
+            land(on: floor)
         } else if player.position.y > ceiling {
-            player.position.y = ceiling
-            verticalVelocity = 0
-            canFlipGravity = true
+            land(on: ceiling)
         }
+    }
+
+    private func land(on surfaceY: CGFloat) {
+        player.position.y = surfaceY
+        verticalVelocity = 0
+        playerState = .grounded
     }
 
     private func buildLevel() {
