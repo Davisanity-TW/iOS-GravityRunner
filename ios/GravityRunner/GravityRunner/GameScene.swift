@@ -19,8 +19,8 @@ final class GameScene: SKScene {
         buildLevel()
     }
 
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard playerState == .grounded else { return }
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard playerState == .grounded, verticalVelocity == 0 else { return }
 
         playerState = .airborne
         gravityDirection *= -1
