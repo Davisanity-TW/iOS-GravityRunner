@@ -1,5 +1,6 @@
 import SpriteKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     var body: some View {
@@ -60,6 +61,7 @@ private struct GameView: View {
 }
 
 private struct EditorView: View {
+    @State private var objects: [EditorObject] = []
     @State private var zoom: CGFloat = 1
     @State private var offset: CGSize = .zero
     @GestureState private var dragOffset: CGSize = .zero
@@ -71,7 +73,7 @@ private struct EditorView: View {
                 Text("我的關卡")
                     .font(.headline)
                 Spacer()
-                Text("(Int(zoom * 100))%")
+                Text("\(Int(zoom * 100))%")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                 Button("重設") {
@@ -83,11 +85,23 @@ private struct EditorView: View {
             .padding(.vertical, 10)
             .background(.ultraThinMaterial)
 
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(EditorObjectKind.allCases) { kind in
+                        PaletteItem(kind: kind)
+                            .onDrag { NSItemProvider(object: kind.rawValue as NSString) }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+            .background(Color.black.opacity(0.9))
+
             GeometryReader { proxy in
                 ZStack {
                     Color.black.opacity(0.92)
 
-                    EditorGrid()
+                    EditorGrid(objects: objects)
                         .scaleEffect(zoom * pinchZoom)
                         .offset(
                             x: offset.width + dragOffset.width,
@@ -112,6 +126,28 @@ private struct EditorView: View {
                                     zoom = min(max(zoom * value, 0.5), 2.5)
                                 }
                         )
+                        .onDrop(of: [UTType.text], isTargeted: nil) { providers, location in
+                            guard let provider = providers.first else { return false }
+                            provider.loadItem(forTypeIdentifier: UTType.text.identifier, options: nil) { item, _ in
+                                let rawValue: String?
+                                if let data = item as? Data {
+                                    rawValue = String(data: data, encoding: .utf8)
+                                } else if let string = item as? String {
+                                    rawValue = string
+                                } else if let string = item as? NSString {
+                                    rawValue = string as String
+                                } else {
+                                    rawValue = nil
+                                }
+
+                                guard let rawValue, let kind = EditorObjectKind(rawValue: rawValue) else { return }
+
+                                DispatchQueue.main.async {
+                                    objects.append(EditorObject(kind: kind, position: location))
+                                }
+                            }
+                            return true
+                        }
                 }
                 .clipped()
                 .overlay(alignment: .topLeading) {
@@ -136,7 +172,47 @@ private struct EditorView: View {
     }
 }
 
+private enum EditorObjectKind: String, CaseIterable, Identifiable {
+    case platform = "平台"
+    case hazard = "危險物"
+    case spawn = "出生點"
+    case finish = "終點"
+    case checkpoint = "Checkpoint"
+
+    var id: String { rawValue }
+
+    var color: Color {
+        switch self {
+        case .platform: .mint
+        case .hazard: .red
+        case .spawn: .blue
+        case .finish: .yellow
+        case .checkpoint: .orange
+        }
+    }
+}
+
+private struct EditorObject: Identifiable {
+    let id = UUID()
+    let kind: EditorObjectKind
+    let position: CGPoint
+}
+
+private struct PaletteItem: View {
+    let kind: EditorObjectKind
+
+    var body: some View {
+        Label(kind.rawValue, systemImage: "square.fill")
+            .font(.caption.bold())
+            .foregroundStyle(kind.color)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(.white.opacity(0.1), in: Capsule())
+    }
+}
+
 private struct EditorGrid: View {
+    let objects: [EditorObject]
     private let size = CGSize(width: 1100, height: 650)
     private let cell: CGFloat = 40
 
@@ -168,6 +244,11 @@ private struct EditorGrid: View {
                 Path(CGRect(x: 840, y: 140, width: 180, height: 28)),
                 with: .color(.pink)
             )
+
+            for object in objects {
+                let frame = CGRect(x: object.position.x - 20, y: object.position.y - 20, width: 40, height: 40)
+                context.fill(Path(roundedRect: frame, cornerRadius: 8), with: .color(object.kind.color))
+            }
         }
         .frame(width: size.width, height: size.height)
         .overlay(alignment: .topLeading) {
