@@ -1,0 +1,13 @@
+{
+  "images" : [
+    {
+      "filename" : "settings-map-editor-concept-v1.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

@@ -5,47 +5,83 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     var body: some View {
         NavigationStack {
-            ZStack {
-                LinearGradient(
-                    colors: [.black, Color(red: 0.02, green: 0.12, blue: 0.18)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-
-                VStack(spacing: 24) {
-                    Spacer()
-
-                    Text("GRAVITY RUNNER")
-                        .font(.system(size: 34, weight: .black, design: .rounded))
-                        .foregroundStyle(.white)
-
-                    Text("翻轉重力，跑出你的路")
-                        .foregroundStyle(.mint)
-
-                    VStack(spacing: 14) {
-                        NavigationLink("開始遊戲") {
-                            GameView()
-                        }
-                        .buttonStyle(PrimaryButtonStyle())
-
-                        NavigationLink("地圖編輯器") {
-                            EditorView()
-                        }
-                        .buttonStyle(SecondaryButtonStyle())
-                    }
-                    .frame(maxWidth: 320)
-
-                    Spacer()
-
-                    Text("Prototype · iOS")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.45))
-                }
-                .padding(32)
-            }
+            StartScreenView()
             .toolbar(.hidden, for: .navigationBar)
         }
+    }
+}
+
+private struct StartScreenView: View {
+    var body: some View {
+        NavigationLink {
+            SettingsView()
+        } label: {
+            ScreenImage(name: "StartScreen") {
+                GeometryReader { proxy in
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .frame(width: proxy.size.width * 0.27, height: proxy.size.height * 0.1)
+                        .position(x: proxy.size.width * 0.54, y: proxy.size.height * 0.88)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Settings")
+    }
+}
+
+private struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            ScreenImage(name: "Settings") {
+                GeometryReader { proxy in
+                    NavigationLink {
+                        EditorView()
+                    } label: {
+                        Color.clear
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: proxy.size.width * 0.58, height: proxy.size.height * 0.2)
+                    .position(x: proxy.size.width * 0.5, y: proxy.size.height * 0.54)
+                    .accessibilityLabel("Map Editor")
+
+                    Button {
+                        dismiss()
+                    } label: {
+                        Color.clear
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: proxy.size.width * 0.1, height: proxy.size.height * 0.12)
+                    .position(x: proxy.size.width * 0.05, y: proxy.size.height * 0.07)
+                    .accessibilityLabel("返回")
+                }
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
+private struct ScreenImage<Overlay: View>: View {
+    let name: String
+    @ViewBuilder let overlay: () -> Overlay
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                Image(name)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
+
+                overlay()
+            }
+        }
+        .ignoresSafeArea()
     }
 }
 
