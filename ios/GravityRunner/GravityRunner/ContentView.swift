@@ -71,14 +71,26 @@ private struct ScreenImage<Overlay: View>: View {
 
     var body: some View {
         GeometryReader { proxy in
-            ZStack {
-                Image(name)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: proxy.size.width, height: proxy.size.height)
-                    .clipped()
+            let scale = min(
+                proxy.size.width / 1669,
+                proxy.size.height / 938
+            )
+            let imageSize = CGSize(
+                width: 1669 * scale,
+                height: 938 * scale
+            )
 
-                overlay()
+            ZStack {
+                Color.black
+
+                ZStack {
+                    Image(name)
+                        .resizable()
+                        .scaledToFit()
+
+                    overlay()
+                }
+                .frame(width: imageSize.width, height: imageSize.height)
             }
         }
         .ignoresSafeArea()
