@@ -13,20 +13,20 @@ struct ContentView: View {
 
 private struct StartScreenView: View {
     var body: some View {
-        NavigationLink {
-            SettingsView()
-        } label: {
-            ScreenImage(name: "StartScreen") {
-                GeometryReader { proxy in
+        ScreenImage(name: "StartScreen") {
+            GeometryReader { proxy in
+                NavigationLink {
+                    SettingsView()
+                } label: {
                     Color.clear
                         .contentShape(Rectangle())
-                        .frame(width: proxy.size.width * 0.25, height: proxy.size.height * 0.11)
-                        .position(x: proxy.size.width * 0.52, y: proxy.size.height * 0.91)
                 }
+                .buttonStyle(.plain)
+                .frame(width: proxy.size.width * 0.25, height: proxy.size.height * 0.11)
+                .position(x: proxy.size.width * 0.52, y: proxy.size.height * 0.91)
+                .accessibilityLabel("Settings")
             }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Settings")
     }
 }
 
