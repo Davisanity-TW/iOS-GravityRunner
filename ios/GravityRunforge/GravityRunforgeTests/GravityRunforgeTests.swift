@@ -1,6 +1,6 @@
 import XCTest
 
-final class GravityRunnerTests: XCTestCase {
+final class GravityRunforgeTests: XCTestCase {
     func testSmoke() {
         XCTAssertTrue(true)
     }

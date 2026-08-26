@@ -1,10 +1,10 @@
 ---
 name: ios-gravityrunner-commit-log
 description: >
-  專用於 iOS-GravityRunner 原生 SwiftUI／SpriteKit 專案。開始任何新 backlog 前，先檢查 Issue & Expectation Tracker 是否有更高優先級的 Issue／Exception；每當 backlog 項目完成或使用者列出的 bug/issue 修正並驗證後，建立獨立 Git commit、自動 push 到目前 origin 分支、在對話中以 100 字內繁體中文說明改動，並將 SHA、日期與 80 字內、以遊戲玩家易懂角度撰寫的繁體中文摘要追加到指定 Notion commit 表格；Notion 更新成功後原文輸出該摘要。
+  專用於 iOS-Gravity Runforge 原生 SwiftUI／SpriteKit 專案。開始任何新 backlog 前，先檢查 Issue & Expectation Tracker 是否有更高優先級的 Issue／Exception；每當 backlog 項目完成或使用者列出的 bug/issue 修正並驗證後，建立獨立 Git commit、自動 push 到目前 origin 分支、在對話中以 100 字內繁體中文說明改動，並將 SHA、日期與 80 字內、以遊戲玩家易懂角度撰寫的繁體中文摘要追加到指定 Notion commit 表格；Notion 更新成功後原文輸出該摘要。
 ---
 
-# iOS GravityRunner Commit Log
+# iOS Gravity Runforge Commit Log
 
 ## 固定目標
 
@@ -28,7 +28,7 @@ description: >
 
 1. 確認 repo 根目錄與 `origin` 指向 `Davisanity-TW/iOS-GravityRunner`。
 2. 只 stage 本次變更，檢查 `git diff --cached`，不得納入 unrelated 變更。
-3. 執行相稱驗證；原生專案優先使用 `xcodebuild -project ios/GravityRunner/GravityRunner.xcodeproj -scheme GravityRunner -sdk iphonesimulator build` 與測試。
+3. 執行相稱驗證；原生專案優先使用 `xcodebuild -project ios/GravityRunforge/GravityRunforge.xcodeproj -scheme GravityRunforge -sdk iphonesimulator build` 與測試。
 4. 建立一次獨立 Conventional Commits commit，不 amend。
 5. 確認目前分支後執行 `git push origin HEAD`；禁止 force push。
 6. 用 `git log -1 --format='%H%n%h%n%ad%n%s' --date=short` 取得資料。

@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct GravityRunnerApp: App {
+struct GravityRunforgeApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

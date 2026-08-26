@@ -65,7 +65,7 @@ final class GameScene: SKScene {
         player.strokeColor = .white
         addChild(player)
 
-        let title = SKLabelNode(text: "GRAVITY RUNNER · TAP TO FLIP")
+        let title = SKLabelNode(text: "GRAVITY RUNFORGE · TAP TO FLIP")
         title.fontName = "Menlo-Bold"
         title.fontSize = 16
         title.fontColor = .white

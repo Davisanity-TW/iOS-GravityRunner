@@ -1,4 +1,4 @@
-# GravityRunner 玩法與原創邊界
+# Gravity Runforge 玩法與原創邊界
 
 本文件完成 P0-1，作為後續設計、程式、美術與關卡製作的共同檢查表。
 
