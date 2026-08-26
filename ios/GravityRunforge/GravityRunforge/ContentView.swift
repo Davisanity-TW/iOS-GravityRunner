@@ -20,8 +20,8 @@ private struct StartScreenView: View {
                 GeometryReader { proxy in
                     Color.clear
                         .contentShape(Rectangle())
-                        .frame(width: proxy.size.width * 0.27, height: proxy.size.height * 0.1)
-                        .position(x: proxy.size.width * 0.54, y: proxy.size.height * 0.88)
+                        .frame(width: proxy.size.width * 0.25, height: proxy.size.height * 0.11)
+                        .position(x: proxy.size.width * 0.52, y: proxy.size.height * 0.91)
                 }
             }
         }
