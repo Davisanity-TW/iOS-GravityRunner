@@ -359,14 +359,14 @@ private struct EditorView: View {
                         },
                         onPan: { delta in
                             let scale = zoom * pinchZoom
-                            let scaledMapSize = CGSize(
-                                width: mapSizeOption.canvasSize.width * scale,
-                                height: mapSizeOption.canvasSize.height * scale
+                            offset = clampedOffset(
+                                CGSize(
+                                    width: offset.width + delta.width,
+                                    height: offset.height + delta.height
+                                ),
+                                viewport: proxy.size,
+                                scale: scale
                             )
-                            let minX = min(0, proxy.size.width - scaledMapSize.width)
-                            let minY = min(0, proxy.size.height - scaledMapSize.height)
-                            offset.width = min(max(offset.width + delta.width, minX), 0)
-                            offset.height = min(max(offset.height + delta.height, minY), 0)
                         },
                         onDelete: { id in
                             guard objects.contains(where: { $0.id == id }) else { return }
@@ -389,6 +389,11 @@ private struct EditorView: View {
                                 .onEnded { value in
                                     guard paintKind == nil && !isEraseMode else { return }
                                     zoom = min(max(zoom * value, 0.5), 2.5)
+                                    offset = clampedOffset(
+                                        offset,
+                                        viewport: proxy.size,
+                                        scale: zoom
+                                    )
                                 }
                         )
                 }
@@ -434,6 +439,19 @@ private struct EditorView: View {
             Text("請先刪除一張地圖，再建立新的地圖。")
         }
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private func clampedOffset(_ proposed: CGSize, viewport: CGSize, scale: CGFloat) -> CGSize {
+        let scaledMapSize = CGSize(
+            width: mapSizeOption.canvasSize.width * scale,
+            height: mapSizeOption.canvasSize.height * scale
+        )
+        let minX = min(0, viewport.width - scaledMapSize.width)
+        let minY = min(0, viewport.height - scaledMapSize.height)
+        return CGSize(
+            width: min(max(proposed.width, minX), 0),
+            height: min(max(proposed.height, minY), 0)
+        )
     }
 
     private func saveMap() {
