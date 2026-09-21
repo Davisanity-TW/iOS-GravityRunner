@@ -415,6 +415,11 @@ private struct EditorView: View {
                             onErase: { points in
                                 objects.removeAll { points.contains($0.position) }
                                 selectedObjectID = nil
+                            },
+                            onBlankTap: {
+                                paintKind = nil
+                                isEraseMode = false
+                                selectedObjectID = nil
                             }
                         )
                     }
@@ -765,6 +770,7 @@ private struct EditorPaintOverlay: View {
     let onPaintStart: () -> Void
     let onPaint: (EditorObjectKind, [CGPoint]) -> Void
     let onErase: ([CGPoint]) -> Void
+    let onBlankTap: () -> Void
     private let cell: CGFloat = 40
     @State private var lastPoint: CGPoint?
     @State private var isPainting = false
@@ -773,7 +779,7 @@ private struct EditorPaintOverlay: View {
         Color.clear
             .contentShape(Rectangle())
             .gesture(
-                DragGesture(minimumDistance: 1)
+                DragGesture(minimumDistance: 12)
                     .onChanged { value in
                         if !isPainting {
                             isPainting = true
@@ -791,6 +797,12 @@ private struct EditorPaintOverlay: View {
                     .onEnded { _ in
                         lastPoint = nil
                         isPainting = false
+                    }
+            )
+            .simultaneousGesture(
+                TapGesture()
+                    .onEnded {
+                        onBlankTap()
                     }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
