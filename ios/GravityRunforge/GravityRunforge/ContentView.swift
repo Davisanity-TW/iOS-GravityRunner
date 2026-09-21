@@ -333,6 +333,20 @@ private struct EditorView: View {
                 ZStack(alignment: .topLeading) {
                     Color.black.opacity(0.92)
 
+                    if paintKind == nil && !isEraseMode {
+                        EditorPanOverlay { delta in
+                            let scale = zoom * pinchZoom
+                            offset = clampedOffset(
+                                CGSize(
+                                    width: offset.width + delta.width,
+                                    height: offset.height + delta.height
+                                ),
+                                viewport: proxy.size,
+                                scale: scale
+                            )
+                        }
+                    }
+
                     EditorGrid(
                         objects: $objects,
                         selectedObjectID: $selectedObjectID,
@@ -829,6 +843,31 @@ private struct EditorPaintOverlay: View {
             guard seen.insert(key).inserted else { return nil }
             return point
         }
+    }
+}
+
+private struct EditorPanOverlay: View {
+    let onPan: (CGSize) -> Void
+    @State private var lastTranslation: CGSize = .zero
+
+    var body: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        let delta = CGSize(
+                            width: value.translation.width - lastTranslation.width,
+                            height: value.translation.height - lastTranslation.height
+                        )
+                        onPan(delta)
+                        lastTranslation = value.translation
+                    }
+                    .onEnded { _ in
+                        lastTranslation = .zero
+                    }
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
