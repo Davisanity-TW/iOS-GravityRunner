@@ -381,6 +381,7 @@ private struct EditorView: View {
                             x: offset.width,
                             y: offset.height
                         )
+                        .allowsHitTesting(paintKind == nil && !isEraseMode)
                         .simultaneousGesture(
                             MagnificationGesture()
                                 .updating($pinchZoom) { value, state, _ in
@@ -397,6 +398,26 @@ private struct EditorView: View {
                                     )
                                 }
                         )
+
+                    if paintKind != nil || isEraseMode {
+                        EditorPaintOverlay(
+                            zoom: zoom * pinchZoom,
+                            contentOffset: offset,
+                            paintKind: paintKind,
+                            isErasing: isEraseMode,
+                            onPaintStart: { undoStack.append(objects) },
+                            onPaint: { kind, points in
+                                for point in points.map({ $0.clampedToMap(size: mapSizeOption.canvasSize, objectSize: 40) })
+                                where !objects.contains(where: { $0.kind == kind && $0.position == point }) {
+                                    objects.append(EditorObject(kind: kind, position: point))
+                                }
+                            },
+                            onErase: { points in
+                                objects.removeAll { points.contains($0.position) }
+                                selectedObjectID = nil
+                            }
+                        )
+                    }
                 }
                 .clipped()
                 .overlay(alignment: .topLeading) {
@@ -733,6 +754,69 @@ private struct PaletteItem: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(.white.opacity(0.1), in: Capsule())
+    }
+}
+
+private struct EditorPaintOverlay: View {
+    let zoom: CGFloat
+    let contentOffset: CGSize
+    let paintKind: EditorObjectKind?
+    let isErasing: Bool
+    let onPaintStart: () -> Void
+    let onPaint: (EditorObjectKind, [CGPoint]) -> Void
+    let onErase: ([CGPoint]) -> Void
+    private let cell: CGFloat = 40
+    @State private var lastPoint: CGPoint?
+    @State private var isPainting = false
+
+    var body: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        if !isPainting {
+                            isPainting = true
+                            onPaintStart()
+                        }
+
+                        let points = paintPoints(from: lastPoint ?? value.location, to: value.location)
+                        if isErasing {
+                            onErase(points)
+                        } else if let paintKind {
+                            onPaint(paintKind, points)
+                        }
+                        lastPoint = value.location
+                    }
+                    .onEnded { _ in
+                        lastPoint = nil
+                        isPainting = false
+                    }
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func paintPoints(from start: CGPoint, to end: CGPoint) -> [CGPoint] {
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let distance = max(abs(dx), abs(dy))
+        let steps = max(Int(distance / (cell / 2)), 1)
+        var seen = Set<String>()
+
+        return (0...steps).compactMap { index in
+            let progress = CGFloat(index) / CGFloat(steps)
+            let touchPoint = CGPoint(
+                x: start.x + dx * progress,
+                y: start.y + dy * progress
+            )
+            let point = CGPoint(
+                x: (touchPoint.x - contentOffset.width) / max(zoom, 0.01),
+                y: (touchPoint.y - contentOffset.height) / max(zoom, 0.01)
+            ).snappedToGrid
+            let key = "\(point.x):\(point.y)"
+            guard seen.insert(key).inserted else { return nil }
+            return point
+        }
     }
 }
 
