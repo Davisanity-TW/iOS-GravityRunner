@@ -220,6 +220,7 @@ private struct EditorView: View {
     @State private var mapSizeOption: MapSizeOption = .small
     @GestureState private var pinchZoom: CGFloat = 1
     private let scrollBarThickness: CGFloat = 9
+    private let scrollBarGap: CGFloat = 6
 
     var body: some View {
         VStack(spacing: 0) {
@@ -332,9 +333,10 @@ private struct EditorView: View {
             .background(Color.black.opacity(0.9))
 
             GeometryReader { proxy in
+                let editorInset = scrollBarThickness + scrollBarGap
                 let editorViewport = CGSize(
-                    width: max(proxy.size.width - scrollBarThickness, 0),
-                    height: max(proxy.size.height - scrollBarThickness, 0)
+                    width: max(proxy.size.width - editorInset, 0),
+                    height: max(proxy.size.height - editorInset, 0)
                 )
                 ZStack(alignment: .topLeading) {
                     Color.black.opacity(0.92)
@@ -358,7 +360,7 @@ private struct EditorView: View {
                             panStartOffset = nil
                         }
                         .frame(width: editorViewport.width, height: editorViewport.height, alignment: .topLeading)
-                        .offset(x: scrollBarThickness, y: scrollBarThickness)
+                        .offset(x: editorInset, y: editorInset)
                     }
 
                     EditorGrid(
@@ -367,8 +369,8 @@ private struct EditorView: View {
                         zoom: zoom * pinchZoom,
                         mapSize: mapSizeOption.canvasSize,
                         contentOffset: CGSize(
-                            width: offset.width + scrollBarThickness,
-                            height: offset.height + scrollBarThickness
+                            width: offset.width + editorInset,
+                            height: offset.height + editorInset
                         ),
                         paintKind: paintKind,
                         isErasing: isEraseMode,
@@ -416,8 +418,8 @@ private struct EditorView: View {
                     )
                         .scaleEffect(zoom * pinchZoom, anchor: .topLeading)
                         .offset(
-                            x: offset.width + scrollBarThickness,
-                            y: offset.height + scrollBarThickness
+                            x: offset.width + editorInset,
+                            y: offset.height + editorInset
                         )
                         .allowsHitTesting(paintKind == nil && !isEraseMode)
                         .simultaneousGesture(
@@ -461,12 +463,13 @@ private struct EditorView: View {
                             }
                         )
                         .frame(width: editorViewport.width, height: editorViewport.height, alignment: .topLeading)
-                        .offset(x: scrollBarThickness, y: scrollBarThickness)
+                        .offset(x: editorInset, y: editorInset)
                     }
 
                     EditorScrollBars(
                         viewportSize: proxy.size,
                         contentViewportSize: editorViewport,
+                        gap: scrollBarGap,
                         mapSize: mapSizeOption.canvasSize,
                         zoom: zoom * pinchZoom,
                         contentOffset: offset,
@@ -914,6 +917,7 @@ private struct EditorPanOverlay: View {
 private struct EditorScrollBars: View {
     let viewportSize: CGSize
     let contentViewportSize: CGSize
+    let gap: CGFloat
     let mapSize: CGSize
     let zoom: CGFloat
     let contentOffset: CGSize
@@ -924,12 +928,12 @@ private struct EditorScrollBars: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             horizontalBar
-                .frame(width: max(viewportSize.width - barThickness, 0), height: barThickness)
-                .offset(x: barThickness)
+                .frame(width: max(viewportSize.width - barThickness - gap, 0), height: barThickness)
+                .offset(x: barThickness + gap)
 
             verticalBar
-                .frame(width: barThickness, height: max(viewportSize.height - barThickness, 0))
-                .offset(y: barThickness)
+                .frame(width: barThickness, height: max(viewportSize.height - barThickness - gap, 0))
+                .offset(y: barThickness + gap)
 
             Color.black.opacity(0.5)
                 .frame(width: barThickness, height: barThickness)
