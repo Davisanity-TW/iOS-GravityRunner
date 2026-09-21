@@ -338,6 +338,7 @@ private struct EditorView: View {
                         selectedObjectID: $selectedObjectID,
                         zoom: zoom * pinchZoom,
                         mapSize: mapSizeOption.canvasSize,
+                        contentOffset: offset,
                         paintKind: paintKind,
                         isErasing: isEraseMode,
                         onEditStart: { undoStack.append(objects) },
@@ -740,6 +741,7 @@ private struct EditorGrid: View {
     @Binding var selectedObjectID: UUID?
     let zoom: CGFloat
     let mapSize: CGSize
+    let contentOffset: CGSize
     let paintKind: EditorObjectKind?
     let isErasing: Bool
     let onEditStart: () -> Void
@@ -869,7 +871,14 @@ private struct EditorGrid: View {
         var seen = Set<String>()
         return (0...steps).compactMap { index in
             let progress = CGFloat(index) / CGFloat(steps)
-            let point = CGPoint(x: start.x + dx * progress, y: start.y + dy * progress).snappedToGrid
+            let touchPoint = CGPoint(
+                x: start.x + dx * progress,
+                y: start.y + dy * progress
+            )
+            let point = CGPoint(
+                x: (touchPoint.x - contentOffset.width) / max(zoom, 0.01),
+                y: (touchPoint.y - contentOffset.height) / max(zoom, 0.01)
+            ).snappedToGrid
             let key = "\(point.x):\(point.y)"
             guard seen.insert(key).inserted else { return nil }
             return point
