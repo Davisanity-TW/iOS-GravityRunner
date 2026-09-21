@@ -451,6 +451,20 @@ private struct EditorView: View {
                             }
                         )
                     }
+
+                    EditorScrollBars(
+                        viewportSize: proxy.size,
+                        mapSize: mapSizeOption.canvasSize,
+                        zoom: zoom * pinchZoom,
+                        contentOffset: offset,
+                        onOffsetChange: { proposed in
+                            offset = clampedOffset(
+                                proposed,
+                                viewport: proxy.size,
+                                scale: zoom * pinchZoom
+                            )
+                        }
+                    )
                 }
                 .clipped()
                 .overlay(alignment: .topLeading) {
@@ -881,6 +895,130 @@ private struct EditorPanOverlay: View {
                     }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct EditorScrollBars: View {
+    let viewportSize: CGSize
+    let mapSize: CGSize
+    let zoom: CGFloat
+    let contentOffset: CGSize
+    let onOffsetChange: (CGSize) -> Void
+    private let barThickness: CGFloat = 18
+    private let minimumThumbLength: CGFloat = 34
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            horizontalBar
+                .frame(width: max(viewportSize.width - barThickness, 0), height: barThickness)
+                .offset(x: barThickness)
+
+            verticalBar
+                .frame(width: barThickness, height: max(viewportSize.height - barThickness, 0))
+                .offset(y: barThickness)
+
+            Color.black.opacity(0.5)
+                .frame(width: barThickness, height: barThickness)
+                .overlay {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+        }
+        .allowsHitTesting(true)
+    }
+
+    private var horizontalBar: some View {
+        GeometryReader { proxy in
+            let trackLength = proxy.size.width
+            let scaledLength = mapSize.width * zoom
+            let thumbLength = thumbLength(trackLength: trackLength, scaledLength: scaledLength, viewportLength: viewportSize.width)
+            let thumbCenter = thumbCenter(
+                trackLength: trackLength,
+                thumbLength: thumbLength,
+                scaledLength: scaledLength,
+                viewportLength: viewportSize.width,
+                offset: contentOffset.width
+            )
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.white.opacity(0.18))
+                Capsule()
+                    .fill(.cyan.opacity(0.9))
+                    .frame(width: thumbLength)
+                    .offset(x: thumbCenter - thumbLength / 2)
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        let progress = min(max(value.location.x / max(trackLength, 1), 0), 1)
+                        let targetCenter = progress * scaledLength
+                        onOffsetChange(
+                            CGSize(
+                                width: viewportSize.width / 2 - targetCenter,
+                                height: contentOffset.height
+                            )
+                        )
+                    }
+            )
+        }
+    }
+
+    private var verticalBar: some View {
+        GeometryReader { proxy in
+            let trackLength = proxy.size.height
+            let scaledLength = mapSize.height * zoom
+            let thumbLength = thumbLength(trackLength: trackLength, scaledLength: scaledLength, viewportLength: viewportSize.height)
+            let thumbCenter = thumbCenter(
+                trackLength: trackLength,
+                thumbLength: thumbLength,
+                scaledLength: scaledLength,
+                viewportLength: viewportSize.height,
+                offset: contentOffset.height
+            )
+
+            ZStack(alignment: .top) {
+                Capsule()
+                    .fill(.white.opacity(0.18))
+                Capsule()
+                    .fill(.cyan.opacity(0.9))
+                    .frame(height: thumbLength)
+                    .offset(y: thumbCenter - thumbLength / 2)
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        let progress = min(max(value.location.y / max(trackLength, 1), 0), 1)
+                        let targetCenter = progress * scaledLength
+                        onOffsetChange(
+                            CGSize(
+                                width: contentOffset.width,
+                                height: viewportSize.height / 2 - targetCenter
+                            )
+                        )
+                    }
+            )
+        }
+    }
+
+    private func thumbLength(trackLength: CGFloat, scaledLength: CGFloat, viewportLength: CGFloat) -> CGFloat {
+        guard scaledLength > 0 else { return trackLength }
+        return min(trackLength, max(minimumThumbLength, trackLength * viewportLength / scaledLength))
+    }
+
+    private func thumbCenter(
+        trackLength: CGFloat,
+        thumbLength: CGFloat,
+        scaledLength: CGFloat,
+        viewportLength: CGFloat,
+        offset: CGFloat
+    ) -> CGFloat {
+        guard scaledLength > 0 else { return trackLength / 2 }
+        let mapCenter = (-offset + viewportLength / 2) / scaledLength
+        return min(max(mapCenter * trackLength, thumbLength / 2), trackLength - thumbLength / 2)
     }
 }
 
