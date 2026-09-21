@@ -216,6 +216,7 @@ private struct EditorView: View {
     @State private var draftMapName = ""
     @State private var zoom: CGFloat = 1
     @State private var offset: CGSize = .zero
+    @State private var panStartOffset: CGSize?
     @State private var mapSizeOption: MapSizeOption = .small
     @GestureState private var pinchZoom: CGFloat = 1
 
@@ -336,14 +337,20 @@ private struct EditorView: View {
                     if paintKind == nil && !isEraseMode {
                         EditorPanOverlay { delta in
                             let scale = zoom * pinchZoom
+                            if panStartOffset == nil {
+                                panStartOffset = offset
+                            }
+                            let start = panStartOffset ?? offset
                             offset = clampedOffset(
                                 CGSize(
-                                    width: offset.width + delta.width,
-                                    height: offset.height + delta.height
+                                    width: start.width + delta.width,
+                                    height: start.height + delta.height
                                 ),
                                 viewport: proxy.size,
                                 scale: scale
                             )
+                        } onEnded: {
+                            panStartOffset = nil
                         }
                     }
 
@@ -374,14 +381,21 @@ private struct EditorView: View {
                         },
                         onPan: { delta in
                             let scale = zoom * pinchZoom
+                            if panStartOffset == nil {
+                                panStartOffset = offset
+                            }
+                            let start = panStartOffset ?? offset
                             offset = clampedOffset(
                                 CGSize(
-                                    width: offset.width + delta.width,
-                                    height: offset.height + delta.height
+                                    width: start.width + delta.width,
+                                    height: start.height + delta.height
                                 ),
                                 viewport: proxy.size,
                                 scale: scale
                             )
+                        },
+                        onPanEnded: {
+                            panStartOffset = nil
                         },
                         onDelete: { id in
                             guard objects.contains(where: { $0.id == id }) else { return }
@@ -848,7 +862,7 @@ private struct EditorPaintOverlay: View {
 
 private struct EditorPanOverlay: View {
     let onPan: (CGSize) -> Void
-    @State private var lastTranslation: CGSize = .zero
+    let onEnded: () -> Void
 
     var body: some View {
         Color.clear
@@ -857,14 +871,13 @@ private struct EditorPanOverlay: View {
                 DragGesture(minimumDistance: 1)
                     .onChanged { value in
                         let delta = CGSize(
-                            width: value.translation.width - lastTranslation.width,
-                            height: value.translation.height - lastTranslation.height
+                            width: value.translation.width,
+                            height: value.translation.height
                         )
                         onPan(delta)
-                        lastTranslation = value.translation
                     }
                     .onEnded { _ in
-                        lastTranslation = .zero
+                        onEnded()
                     }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -885,11 +898,11 @@ private struct EditorGrid: View {
     let onErase: ([CGPoint]) -> Void
     let onBlankTap: () -> Void
     let onPan: (CGSize) -> Void
+    let onPanEnded: () -> Void
     let onDelete: (UUID) -> Void
     private let cell: CGFloat = 40
     @State private var lastPaintPoint: CGPoint?
     @State private var isPainting = false
-    @State private var lastPanTranslation: CGSize = .zero
 
     var body: some View {
         Canvas { context, _ in
@@ -961,18 +974,13 @@ private struct EditorGrid: View {
                 }
         )
         .simultaneousGesture(
-            DragGesture(minimumDistance: 1)
-                .onChanged { value in
-                    guard paintKind == nil && !isErasing else { return }
-                    let delta = CGSize(
-                        width: value.translation.width - lastPanTranslation.width,
-                        height: value.translation.height - lastPanTranslation.height
-                    )
-                    onPan(delta)
-                    lastPanTranslation = value.translation
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        guard paintKind == nil && !isErasing else { return }
+                    onPan(value.translation)
                 }
                 .onEnded { _ in
-                    lastPanTranslation = .zero
+                    onPanEnded()
                 }
         )
         .overlay(alignment: .topLeading) {
