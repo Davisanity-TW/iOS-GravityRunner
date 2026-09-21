@@ -219,6 +219,7 @@ private struct EditorView: View {
     @State private var panStartOffset: CGSize?
     @State private var mapSizeOption: MapSizeOption = .small
     @GestureState private var pinchZoom: CGFloat = 1
+    private let scrollBarThickness: CGFloat = 9
 
     var body: some View {
         VStack(spacing: 0) {
@@ -331,6 +332,10 @@ private struct EditorView: View {
             .background(Color.black.opacity(0.9))
 
             GeometryReader { proxy in
+                let editorViewport = CGSize(
+                    width: max(proxy.size.width - scrollBarThickness, 0),
+                    height: max(proxy.size.height - scrollBarThickness, 0)
+                )
                 ZStack(alignment: .topLeading) {
                     Color.black.opacity(0.92)
 
@@ -346,12 +351,14 @@ private struct EditorView: View {
                                     width: start.width + delta.width,
                                     height: start.height + delta.height
                                 ),
-                                viewport: proxy.size,
+                                viewport: editorViewport,
                                 scale: scale
                             )
                         } onEnded: {
                             panStartOffset = nil
                         }
+                        .frame(width: editorViewport.width, height: editorViewport.height, alignment: .topLeading)
+                        .offset(x: scrollBarThickness, y: scrollBarThickness)
                     }
 
                     EditorGrid(
@@ -359,7 +366,10 @@ private struct EditorView: View {
                         selectedObjectID: $selectedObjectID,
                         zoom: zoom * pinchZoom,
                         mapSize: mapSizeOption.canvasSize,
-                        contentOffset: offset,
+                        contentOffset: CGSize(
+                            width: offset.width + scrollBarThickness,
+                            height: offset.height + scrollBarThickness
+                        ),
                         paintKind: paintKind,
                         isErasing: isEraseMode,
                         onEditStart: { undoStack.append(objects) },
@@ -390,7 +400,7 @@ private struct EditorView: View {
                                     width: start.width + delta.width,
                                     height: start.height + delta.height
                                 ),
-                                viewport: proxy.size,
+                                viewport: editorViewport,
                                 scale: scale
                             )
                         },
@@ -406,8 +416,8 @@ private struct EditorView: View {
                     )
                         .scaleEffect(zoom * pinchZoom, anchor: .topLeading)
                         .offset(
-                            x: offset.width,
-                            y: offset.height
+                            x: offset.width + scrollBarThickness,
+                            y: offset.height + scrollBarThickness
                         )
                         .allowsHitTesting(paintKind == nil && !isEraseMode)
                         .simultaneousGesture(
@@ -421,7 +431,7 @@ private struct EditorView: View {
                                     zoom = min(max(zoom * value, 0.5), 2.5)
                                     offset = clampedOffset(
                                         offset,
-                                        viewport: proxy.size,
+                                        viewport: editorViewport,
                                         scale: zoom
                                     )
                                 }
@@ -450,17 +460,20 @@ private struct EditorView: View {
                                 selectedObjectID = nil
                             }
                         )
+                        .frame(width: editorViewport.width, height: editorViewport.height, alignment: .topLeading)
+                        .offset(x: scrollBarThickness, y: scrollBarThickness)
                     }
 
                     EditorScrollBars(
                         viewportSize: proxy.size,
+                        contentViewportSize: editorViewport,
                         mapSize: mapSizeOption.canvasSize,
                         zoom: zoom * pinchZoom,
                         contentOffset: offset,
                         onOffsetChange: { proposed in
                             offset = clampedOffset(
                                 proposed,
-                                viewport: proxy.size,
+                                viewport: editorViewport,
                                 scale: zoom * pinchZoom
                             )
                         }
@@ -900,11 +913,12 @@ private struct EditorPanOverlay: View {
 
 private struct EditorScrollBars: View {
     let viewportSize: CGSize
+    let contentViewportSize: CGSize
     let mapSize: CGSize
     let zoom: CGFloat
     let contentOffset: CGSize
     let onOffsetChange: (CGSize) -> Void
-    private let barThickness: CGFloat = 18
+    private let barThickness: CGFloat = 9
     private let minimumThumbLength: CGFloat = 34
 
     var body: some View {
@@ -932,12 +946,12 @@ private struct EditorScrollBars: View {
         GeometryReader { proxy in
             let trackLength = proxy.size.width
             let scaledLength = mapSize.width * zoom
-            let thumbLength = thumbLength(trackLength: trackLength, scaledLength: scaledLength, viewportLength: viewportSize.width)
+            let thumbLength = thumbLength(trackLength: trackLength, scaledLength: scaledLength, viewportLength: contentViewportSize.width)
             let thumbCenter = thumbCenter(
                 trackLength: trackLength,
                 thumbLength: thumbLength,
                 scaledLength: scaledLength,
-                viewportLength: viewportSize.width,
+                viewportLength: contentViewportSize.width,
                 offset: contentOffset.width
             )
 
@@ -957,7 +971,7 @@ private struct EditorScrollBars: View {
                         let targetCenter = progress * scaledLength
                         onOffsetChange(
                             CGSize(
-                                width: viewportSize.width / 2 - targetCenter,
+                                width: contentViewportSize.width / 2 - targetCenter,
                                 height: contentOffset.height
                             )
                         )
@@ -970,12 +984,12 @@ private struct EditorScrollBars: View {
         GeometryReader { proxy in
             let trackLength = proxy.size.height
             let scaledLength = mapSize.height * zoom
-            let thumbLength = thumbLength(trackLength: trackLength, scaledLength: scaledLength, viewportLength: viewportSize.height)
+            let thumbLength = thumbLength(trackLength: trackLength, scaledLength: scaledLength, viewportLength: contentViewportSize.height)
             let thumbCenter = thumbCenter(
                 trackLength: trackLength,
                 thumbLength: thumbLength,
                 scaledLength: scaledLength,
-                viewportLength: viewportSize.height,
+                viewportLength: contentViewportSize.height,
                 offset: contentOffset.height
             )
 
@@ -996,7 +1010,7 @@ private struct EditorScrollBars: View {
                         onOffsetChange(
                             CGSize(
                                 width: contentOffset.width,
-                                height: viewportSize.height / 2 - targetCenter
+                                height: contentViewportSize.height / 2 - targetCenter
                             )
                         )
                     }
