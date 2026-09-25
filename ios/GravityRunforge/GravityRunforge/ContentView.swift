@@ -186,9 +186,9 @@ private struct GameView: View {
         ZStack(alignment: .topLeading) {
             GeometryReader { proxy in
                 SpriteView(scene: GameScene(size: proxy.size))
-                    .ignoresSafeArea()
                     .background(.black)
             }
+            .ignoresSafeArea()
 
             BackButton {
                 dismiss()
@@ -215,6 +215,7 @@ private struct EditorView: View {
     @State private var showLimitAlert = false
     @State private var draftMapName = ""
     @State private var mapHeight: CGFloat = 0
+    @State private var fitScale: CGFloat = 1
     @State private var zoom: CGFloat = 1
     @State private var offset: CGSize = .zero
     @State private var panStartOffset: CGSize?
@@ -224,228 +225,160 @@ private struct EditorView: View {
     private let scrollBarGap: CGFloat = 6
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                BackButton {
-                    dismiss()
-                }
-
-                Text(mapName)
-                    .font(.headline)
-                Spacer()
-                Text("\(Int(zoom * 100))%")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                Button {
-                    isEraseMode.toggle()
-                    paintKind = nil
-                    selectedObjectID = nil
-                } label: {
-                    Label("橡皮擦", systemImage: isEraseMode ? "eraser.fill" : "eraser")
-                        .font(.caption.bold())
-                        .foregroundStyle(isEraseMode ? .black : .white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(isEraseMode ? Color.yellow : Color.white.opacity(0.12), in: Capsule())
-                }
-                .buttonStyle(PressFeedbackStyle(showGlow: false))
-                .accessibilityLabel(isEraseMode ? "關閉橡皮擦" : "開啟橡皮擦")
-                Button {
-                    guard let previous = undoStack.popLast() else { return }
-                    objects = previous
-                    selectedObjectID = nil
-                } label: {
-                    Label("復原", systemImage: "arrow.uturn.backward")
-                        .font(.caption.bold())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(.white.opacity(0.12), in: Capsule())
-                }
-                .buttonStyle(PressFeedbackStyle(showGlow: false))
-                .disabled(undoStack.isEmpty)
-                Button {
-                    saveMap()
-                } label: {
-                    Label("儲存", systemImage: "square.and.arrow.down")
-                        .font(.caption.bold())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(.white.opacity(0.12), in: Capsule())
-                }
-                .buttonStyle(PressFeedbackStyle(showGlow: false))
-                Button {
-                    showMapLibrary = true
-                } label: {
-                    Label("地圖", systemImage: "folder")
-                        .font(.caption.bold())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(.white.opacity(0.12), in: Capsule())
-                }
-                .buttonStyle(PressFeedbackStyle(showGlow: false))
-                Menu {
-                    ForEach(MapSizeOption.allCases) { option in
-                        Button {
-                            mapSizeOption = option
-                            offset = .zero
-                            zoom = 1
-                        } label: {
-                            Label(option.label, systemImage: mapSizeOption == option ? "checkmark" : "")
-                        }
+        GeometryReader { screen in
+            let screenHeight = screen.size.height + screen.safeAreaInsets.top + screen.safeAreaInsets.bottom
+            VStack(spacing: 0) {
+                HStack {
+                    BackButton {
+                        dismiss()
                     }
-                } label: {
-                    Label("長度 \(mapSizeOption.rawValue)", systemImage: "rectangle.resize")
-                        .font(.caption.bold())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(.white.opacity(0.12), in: Capsule())
-                }
-                .buttonStyle(PressFeedbackStyle(showGlow: false))
-                Button("重設") {
-                    zoom = 1
-                    offset = .zero
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 10)
-            .background(.ultraThinMaterial)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(EditorObjectKind.allCases) { kind in
-                        PaletteItem(kind: kind)
-                            .onTapGesture {
-                                paintKind = kind
-                                isEraseMode = false
-                                selectedObjectID = nil
+                    Text(mapName)
+                        .font(.headline)
+                    Spacer()
+                    Text("\(Int((zoom * fitScale * 100).rounded()))%")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    Button {
+                        isEraseMode.toggle()
+                        paintKind = nil
+                        selectedObjectID = nil
+                    } label: {
+                        Label("橡皮擦", systemImage: isEraseMode ? "eraser.fill" : "eraser")
+                            .font(.caption.bold())
+                            .foregroundStyle(isEraseMode ? .black : .white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(isEraseMode ? Color.yellow : Color.white.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(PressFeedbackStyle(showGlow: false))
+                    .accessibilityLabel(isEraseMode ? "關閉橡皮擦" : "開啟橡皮擦")
+                    Button {
+                        guard let previous = undoStack.popLast() else { return }
+                        objects = previous
+                        selectedObjectID = nil
+                    } label: {
+                        Label("復原", systemImage: "arrow.uturn.backward")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(.white.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(PressFeedbackStyle(showGlow: false))
+                    .disabled(undoStack.isEmpty)
+                    Button {
+                        saveMap()
+                    } label: {
+                        Label("儲存", systemImage: "square.and.arrow.down")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(.white.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(PressFeedbackStyle(showGlow: false))
+                    Button {
+                        showMapLibrary = true
+                    } label: {
+                        Label("地圖", systemImage: "folder")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(.white.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(PressFeedbackStyle(showGlow: false))
+                    Menu {
+                        ForEach(MapSizeOption.allCases) { option in
+                            Button {
+                                mapSizeOption = option
+                                offset = .zero
+                                zoom = 1
+                            } label: {
+                                Label(option.label, systemImage: mapSizeOption == option ? "checkmark" : "")
                             }
-                            .overlay {
-                                if paintKind == kind {
-                                    Capsule()
-                                        .stroke(.yellow, lineWidth: 2)
-                                        .allowsHitTesting(false)
-                                }
-                            }
+                        }
+                    } label: {
+                        Label("長度 \(mapSizeOption.rawValue)", systemImage: "rectangle.resize")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(.white.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(PressFeedbackStyle(showGlow: false))
+                    Button("重設") {
+                        zoom = 1
+                        offset = .zero
                     }
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 8)
-            }
-            .background(Color.black.opacity(0.9))
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
 
-            GeometryReader { proxy in
-                let editorInset = scrollBarThickness + scrollBarGap
-                let editorViewport = CGSize(
-                    width: max(proxy.size.width - editorInset, 0),
-                    height: max(proxy.size.height - editorInset, 0)
-                )
-                ZStack(alignment: .topLeading) {
-                    Color.black.opacity(0.92)
-
-                    if paintKind == nil && !isEraseMode {
-                        EditorPanOverlay { delta in
-                            let scale = zoom * pinchZoom
-                            if panStartOffset == nil {
-                                panStartOffset = offset
-                            }
-                            let start = panStartOffset ?? offset
-                            offset = clampedOffset(
-                                CGSize(
-                                    width: start.width + delta.width,
-                                    height: start.height + delta.height
-                                ),
-                                viewport: editorViewport,
-                                scale: scale
-                            )
-                        } onEnded: {
-                            panStartOffset = nil
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(EditorObjectKind.allCases) { kind in
+                            PaletteItem(kind: kind)
+                                .onTapGesture {
+                                    paintKind = kind
+                                    isEraseMode = false
+                                    selectedObjectID = nil
+                                }
+                                .overlay {
+                                    if paintKind == kind {
+                                        Capsule()
+                                            .stroke(.yellow, lineWidth: 2)
+                                            .allowsHitTesting(false)
+                                    }
+                                }
                         }
-                        .frame(width: editorViewport.width, height: editorViewport.height, alignment: .topLeading)
-                        .offset(x: editorInset, y: editorInset)
                     }
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                }
+                .background(Color.black.opacity(0.9))
 
-                    EditorGrid(
-                        objects: $objects,
-                        selectedObjectID: $selectedObjectID,
-                        zoom: zoom * pinchZoom,
-                        mapSize: mapSizeOption.canvasSize(height: mapHeight),
-                        contentOffset: CGSize(
-                            width: offset.width + editorInset,
-                            height: offset.height + editorInset
-                        ),
-                        paintKind: paintKind,
-                        isErasing: isEraseMode,
-                        onEditStart: { undoStack.append(objects) },
-                        onPaintStart: { undoStack.append(objects) },
-                        onPaint: { kind, points in
-                            for point in points.map({ $0.clampedToMap(size: mapSizeOption.canvasSize(height: mapHeight), objectSize: 40) })
-                            where !objects.contains(where: { $0.kind == kind && $0.position == point }) {
-                                objects.append(EditorObject(kind: kind, position: point))
-                            }
-                        },
-                        onErase: { points in
-                            objects.removeAll { points.contains($0.position) }
-                            selectedObjectID = nil
-                        },
-                        onBlankTap: {
-                            paintKind = nil
-                            isEraseMode = false
-                            selectedObjectID = nil
-                        },
-                        onPan: { delta in
-                            let scale = zoom * pinchZoom
-                            if panStartOffset == nil {
-                                panStartOffset = offset
-                            }
-                            let start = panStartOffset ?? offset
-                            offset = clampedOffset(
-                                CGSize(
-                                    width: start.width + delta.width,
-                                    height: start.height + delta.height
-                                ),
-                                viewport: editorViewport,
-                                scale: scale
-                            )
-                        },
-                        onPanEnded: {
-                            panStartOffset = nil
-                        },
-                        onDelete: { id in
-                            guard objects.contains(where: { $0.id == id }) else { return }
-                            undoStack.append(objects)
-                            objects.removeAll { $0.id == id }
-                            selectedObjectID = nil
-                        }
+                GeometryReader { proxy in
+                    let editorInset = scrollBarThickness + scrollBarGap
+                    let editorViewport = CGSize(
+                        width: max(proxy.size.width - editorInset, 0),
+                        height: max(proxy.size.height - editorInset, 0)
                     )
-                        .scaleEffect(zoom * pinchZoom, anchor: .topLeading)
-                        .offset(
-                            x: offset.width + editorInset,
-                            y: offset.height + editorInset
-                        )
-                        .allowsHitTesting(paintKind == nil && !isEraseMode)
-                        .simultaneousGesture(
-                            MagnificationGesture()
-                                .updating($pinchZoom) { value, state, _ in
-                                    guard paintKind == nil && !isEraseMode else { return }
-                                    state = value
-                                }
-                                .onEnded { value in
-                                    guard paintKind == nil && !isEraseMode else { return }
-                                    zoom = min(max(zoom * value, 0.5), 2.5)
-                                    offset = clampedOffset(
-                                        offset,
-                                        viewport: editorViewport,
-                                        scale: zoom
-                                    )
-                                }
-                        )
+                    ZStack(alignment: .topLeading) {
+                        Color.black.opacity(0.92)
 
-                    if paintKind != nil || isEraseMode {
-                        EditorPaintOverlay(
-                            zoom: zoom * pinchZoom,
-                            contentOffset: offset,
+                        if paintKind == nil && !isEraseMode {
+                            EditorPanOverlay { delta in
+                                let scale = zoom * fitScale * pinchZoom
+                                if panStartOffset == nil {
+                                    panStartOffset = offset
+                                }
+                                let start = panStartOffset ?? offset
+                                offset = clampedOffset(
+                                    CGSize(
+                                        width: start.width + delta.width,
+                                        height: start.height + delta.height
+                                    ),
+                                    viewport: editorViewport,
+                                    scale: scale
+                                )
+                            } onEnded: {
+                                panStartOffset = nil
+                            }
+                            .frame(width: editorViewport.width, height: editorViewport.height, alignment: .topLeading)
+                            .offset(x: editorInset, y: editorInset)
+                        }
+
+                        EditorGrid(
+                            objects: $objects,
+                            selectedObjectID: $selectedObjectID,
+                            zoom: zoom * fitScale * pinchZoom,
+                            mapSize: mapSizeOption.canvasSize(height: mapHeight),
+                            contentOffset: CGSize(
+                                width: offset.width + editorInset,
+                                height: offset.height + editorInset
+                            ),
                             paintKind: paintKind,
                             isErasing: isEraseMode,
+                            onEditStart: { undoStack.append(objects) },
                             onPaintStart: { undoStack.append(objects) },
                             onPaint: { kind, points in
                                 for point in points.map({ $0.clampedToMap(size: mapSizeOption.canvasSize(height: mapHeight), objectSize: 40) })
@@ -461,50 +394,122 @@ private struct EditorView: View {
                                 paintKind = nil
                                 isEraseMode = false
                                 selectedObjectID = nil
+                            },
+                            onPan: { delta in
+                                let scale = zoom * fitScale * pinchZoom
+                                if panStartOffset == nil {
+                                    panStartOffset = offset
+                                }
+                                let start = panStartOffset ?? offset
+                                offset = clampedOffset(
+                                    CGSize(
+                                        width: start.width + delta.width,
+                                        height: start.height + delta.height
+                                    ),
+                                    viewport: editorViewport,
+                                    scale: scale
+                                )
+                            },
+                            onPanEnded: {
+                                panStartOffset = nil
+                            },
+                            onDelete: { id in
+                                guard objects.contains(where: { $0.id == id }) else { return }
+                                undoStack.append(objects)
+                                objects.removeAll { $0.id == id }
+                                selectedObjectID = nil
                             }
                         )
-                        .frame(width: editorViewport.width, height: editorViewport.height, alignment: .topLeading)
-                        .offset(x: editorInset, y: editorInset)
-                    }
-
-                    EditorScrollBars(
-                        viewportSize: proxy.size,
-                        contentViewportSize: editorViewport,
-                        gap: scrollBarGap,
-                        mapSize: mapSizeOption.canvasSize(height: mapHeight),
-                        zoom: zoom * pinchZoom,
-                        contentOffset: offset,
-                        onOffsetChange: { proposed in
-                            offset = clampedOffset(
-                                proposed,
-                                viewport: editorViewport,
-                                scale: zoom * pinchZoom
+                            .scaleEffect(zoom * fitScale * pinchZoom, anchor: .topLeading)
+                            .offset(
+                                x: offset.width + editorInset,
+                                y: offset.height + editorInset
                             )
+                            .allowsHitTesting(paintKind == nil && !isEraseMode)
+                            .simultaneousGesture(
+                                MagnificationGesture()
+                                    .updating($pinchZoom) { value, state, _ in
+                                        guard paintKind == nil && !isEraseMode else { return }
+                                        state = value
+                                    }
+                                    .onEnded { value in
+                                        guard paintKind == nil && !isEraseMode else { return }
+                                        zoom = min(max(zoom * value, 0.5), 2.5)
+                                        offset = clampedOffset(
+                                            offset,
+                                            viewport: editorViewport,
+                                            scale: zoom * fitScale
+                                        )
+                                    }
+                            )
+
+                        if paintKind != nil || isEraseMode {
+                            EditorPaintOverlay(
+                                zoom: zoom * fitScale * pinchZoom,
+                                contentOffset: offset,
+                                paintKind: paintKind,
+                                isErasing: isEraseMode,
+                                onPaintStart: { undoStack.append(objects) },
+                                onPaint: { kind, points in
+                                    for point in points.map({ $0.clampedToMap(size: mapSizeOption.canvasSize(height: mapHeight), objectSize: 40) })
+                                    where !objects.contains(where: { $0.kind == kind && $0.position == point }) {
+                                        objects.append(EditorObject(kind: kind, position: point))
+                                    }
+                                },
+                                onErase: { points in
+                                    objects.removeAll { points.contains($0.position) }
+                                    selectedObjectID = nil
+                                },
+                                onBlankTap: {
+                                    paintKind = nil
+                                    isEraseMode = false
+                                    selectedObjectID = nil
+                                }
+                            )
+                            .frame(width: editorViewport.width, height: editorViewport.height, alignment: .topLeading)
+                            .offset(x: editorInset, y: editorInset)
                         }
-                    )
-                }
-                .clipped()
-                .onChange(of: editorViewport, initial: true) { _, viewport in
-                    guard viewport.height > 0 else { return }
-                    objects = objects.fittingMapHeight(from: mapHeight, to: viewport.height)
-                    undoStack = undoStack.map { $0.fittingMapHeight(from: mapHeight, to: viewport.height) }
-                    mapHeight = viewport.height
-                    offset = clampedOffset(offset, viewport: viewport, scale: zoom)
-                    panStartOffset = nil
-                }
-                .overlay(alignment: .topLeading) {
-                    Text("拖曳平移 · 雙指縮放")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-                        .padding(10)
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    Text("安全區")
-                        .font(.caption2)
-                        .foregroundStyle(.yellow)
-                        .padding(8)
-                        .background(.black.opacity(0.5), in: Capsule())
-                        .padding()
+
+                        EditorScrollBars(
+                            viewportSize: proxy.size,
+                            contentViewportSize: editorViewport,
+                            gap: scrollBarGap,
+                            mapSize: mapSizeOption.canvasSize(height: mapHeight),
+                            zoom: zoom * fitScale * pinchZoom,
+                            contentOffset: offset,
+                            onOffsetChange: { proposed in
+                                offset = clampedOffset(
+                                    proposed,
+                                    viewport: editorViewport,
+                                    scale: zoom * fitScale * pinchZoom
+                                )
+                            }
+                        )
+                    }
+                    .clipped()
+                    .onChange(of: [editorViewport.height, editorViewport.width, screenHeight], initial: true) { _, _ in
+                        guard editorViewport.height > 0, screenHeight > 0 else { return }
+                        objects = objects.fittingMapHeight(from: mapHeight, to: screenHeight)
+                        undoStack = undoStack.map { $0.fittingMapHeight(from: mapHeight, to: screenHeight) }
+                        mapHeight = screenHeight
+                        fitScale = editorViewport.height / screenHeight
+                        offset = clampedOffset(offset, viewport: editorViewport, scale: zoom * fitScale)
+                        panStartOffset = nil
+                    }
+                    .overlay(alignment: .topLeading) {
+                        Text("拖曳平移 · 雙指縮放")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                            .padding(10)
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        Text("安全區")
+                            .font(.caption2)
+                            .foregroundStyle(.yellow)
+                            .padding(8)
+                            .background(.black.opacity(0.5), in: Capsule())
+                            .padding()
+                    }
                 }
             }
         }

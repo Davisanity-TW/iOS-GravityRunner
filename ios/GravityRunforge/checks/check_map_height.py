@@ -6,7 +6,7 @@ import tempfile
 source = (Path(__file__).resolve().parents[1] / 'GravityRunforge/ContentView.swift').read_text()
 models = source[source.index('private enum MapSizeOption:'):source.index('private enum LocalMapStore {')]
 checks = r'''
-for height: CGFloat in [240, 300, 650, 900] {
+for height: CGFloat in [240, 300, 402, 440, 650, 834, 900, 1024] {
     for (option, length) in zip(MapSizeOption.allCases, [2000, 8000, 10000, 12000]) {
         assert(option.canvasSize(height: height) == CGSize(width: CGFloat(length), height: height))
         assert(!option.label.contains("650") && !option.label.contains("×"))
