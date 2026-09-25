@@ -214,6 +214,7 @@ private struct EditorView: View {
     @State private var showSavePrompt = false
     @State private var showLimitAlert = false
     @State private var draftMapName = ""
+    @State private var mapHeight: CGFloat = 0
     @State private var zoom: CGFloat = 1
     @State private var offset: CGSize = .zero
     @State private var panStartOffset: CGSize?
@@ -293,7 +294,7 @@ private struct EditorView: View {
                         }
                     }
                 } label: {
-                    Label("尺寸 (mapSizeOption.rawValue)", systemImage: "rectangle.resize")
+                    Label("長度 \(mapSizeOption.rawValue)", systemImage: "rectangle.resize")
                         .font(.caption.bold())
                         .padding(.horizontal, 10)
                         .padding(.vertical, 7)
@@ -367,7 +368,7 @@ private struct EditorView: View {
                         objects: $objects,
                         selectedObjectID: $selectedObjectID,
                         zoom: zoom * pinchZoom,
-                        mapSize: mapSizeOption.canvasSize,
+                        mapSize: mapSizeOption.canvasSize(height: mapHeight),
                         contentOffset: CGSize(
                             width: offset.width + editorInset,
                             height: offset.height + editorInset
@@ -377,7 +378,7 @@ private struct EditorView: View {
                         onEditStart: { undoStack.append(objects) },
                         onPaintStart: { undoStack.append(objects) },
                         onPaint: { kind, points in
-                            for point in points.map({ $0.clampedToMap(size: mapSizeOption.canvasSize, objectSize: 40) })
+                            for point in points.map({ $0.clampedToMap(size: mapSizeOption.canvasSize(height: mapHeight), objectSize: 40) })
                             where !objects.contains(where: { $0.kind == kind && $0.position == point }) {
                                 objects.append(EditorObject(kind: kind, position: point))
                             }
@@ -447,7 +448,7 @@ private struct EditorView: View {
                             isErasing: isEraseMode,
                             onPaintStart: { undoStack.append(objects) },
                             onPaint: { kind, points in
-                                for point in points.map({ $0.clampedToMap(size: mapSizeOption.canvasSize, objectSize: 40) })
+                                for point in points.map({ $0.clampedToMap(size: mapSizeOption.canvasSize(height: mapHeight), objectSize: 40) })
                                 where !objects.contains(where: { $0.kind == kind && $0.position == point }) {
                                     objects.append(EditorObject(kind: kind, position: point))
                                 }
@@ -470,7 +471,7 @@ private struct EditorView: View {
                         viewportSize: proxy.size,
                         contentViewportSize: editorViewport,
                         gap: scrollBarGap,
-                        mapSize: mapSizeOption.canvasSize,
+                        mapSize: mapSizeOption.canvasSize(height: mapHeight),
                         zoom: zoom * pinchZoom,
                         contentOffset: offset,
                         onOffsetChange: { proposed in
@@ -483,6 +484,14 @@ private struct EditorView: View {
                     )
                 }
                 .clipped()
+                .onChange(of: editorViewport, initial: true) { _, viewport in
+                    guard viewport.height > 0 else { return }
+                    objects = objects.fittingMapHeight(from: mapHeight, to: viewport.height)
+                    undoStack = undoStack.map { $0.fittingMapHeight(from: mapHeight, to: viewport.height) }
+                    mapHeight = viewport.height
+                    offset = clampedOffset(offset, viewport: viewport, scale: zoom)
+                    panStartOffset = nil
+                }
                 .overlay(alignment: .topLeading) {
                     Text("拖曳平移 · 雙指縮放")
                         .font(.caption)
@@ -528,8 +537,8 @@ private struct EditorView: View {
 
     private func clampedOffset(_ proposed: CGSize, viewport: CGSize, scale: CGFloat) -> CGSize {
         let scaledMapSize = CGSize(
-            width: mapSizeOption.canvasSize.width * scale,
-            height: mapSizeOption.canvasSize.height * scale
+            width: mapSizeOption.canvasSize(height: mapHeight).width * scale,
+            height: mapSizeOption.canvasSize(height: mapHeight).height * scale
         )
         let minX = min(0, viewport.width - scaledMapSize.width)
         let minY = min(0, viewport.height - scaledMapSize.height)
@@ -545,6 +554,7 @@ private struct EditorView: View {
             savedMaps[index].name = mapName
             savedMaps[index].objects = objects
             savedMaps[index].mapSize = mapSizeOption
+            savedMaps[index].canvasHeight = mapHeight
             savedMaps[index].updatedAt = Date()
             LocalMapStore.save(savedMaps)
         } else if savedMaps.count < LocalMapStore.maxMapCount {
@@ -558,7 +568,7 @@ private struct EditorView: View {
     private func saveNewMap() {
         let name = draftMapName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, savedMaps.count < LocalMapStore.maxMapCount else { return }
-        let map = SavedMap(name: name, objects: objects, mapSize: mapSizeOption)
+        let map = SavedMap(name: name, objects: objects, mapSize: mapSizeOption, canvasHeight: mapHeight)
         savedMaps.append(map)
         currentMapID = map.id
         mapName = map.name
@@ -567,7 +577,9 @@ private struct EditorView: View {
     }
 
     private func loadMap(_ map: SavedMap) {
-        objects = map.objects
+        objects = map.objects.fittingMapHeight(from: map.canvasHeight, to: mapHeight)
+        zoom = 1
+        offset = .zero
         currentMapID = map.id
         mapName = map.name
         mapSizeOption = map.mapSize
@@ -652,19 +664,19 @@ private enum MapSizeOption: String, CaseIterable, Identifiable, Codable {
 
     var label: String {
         switch self {
-        case .xs: "XS（2000 × 650）"
-        case .small: "S（8000 × 650）"
-        case .medium: "M（10000 × 650）"
-        case .large: "L（12000 × 650）"
+        case .xs: "XS（2000）"
+        case .small: "S（8000）"
+        case .medium: "M（10000）"
+        case .large: "L（12000）"
         }
     }
 
-    var canvasSize: CGSize {
+    func canvasSize(height: CGFloat) -> CGSize {
         switch self {
-        case .xs: CGSize(width: 2000, height: 650)
-        case .small: CGSize(width: 8000, height: 650)
-        case .medium: CGSize(width: 10000, height: 650)
-        case .large: CGSize(width: 12000, height: 650)
+        case .xs: CGSize(width: 2000, height: height)
+        case .small: CGSize(width: 8000, height: height)
+        case .medium: CGSize(width: 10000, height: height)
+        case .large: CGSize(width: 12000, height: height)
         }
     }
 }
@@ -676,22 +688,40 @@ private struct EditorObject: Identifiable, Codable {
     var size: CGFloat = 40
 }
 
+private extension Array where Element == EditorObject {
+    func fittingMapHeight(from oldHeight: CGFloat, to newHeight: CGFloat) -> [EditorObject] {
+        guard oldHeight > 0, newHeight > 0, oldHeight != newHeight else { return self }
+        return map { original in
+            var object = original
+            let oldInset = object.size / 2
+            object.size = Swift.min(object.size, newHeight)
+            let inset = object.size / 2
+            // Keep floor/ceiling objects attached while preserving relative vertical placement.
+            let fraction = (object.position.y - oldInset) / Swift.max(oldHeight - original.size, 1)
+            object.position.y = inset + Swift.min(Swift.max(fraction, 0), 1) * (newHeight - object.size)
+            return object
+        }
+    }
+}
+
 private struct SavedMap: Identifiable, Codable {
     let id: UUID
     var name: String
     var objects: [EditorObject]
     var mapSize: MapSizeOption
+    var canvasHeight: CGFloat
     var updatedAt: Date
 
-    init(id: UUID = UUID(), name: String, objects: [EditorObject], mapSize: MapSizeOption = .small, updatedAt: Date = Date()) {
+    init(id: UUID = UUID(), name: String, objects: [EditorObject], mapSize: MapSizeOption = .small, canvasHeight: CGFloat, updatedAt: Date = Date()) {
         self.id = id
         self.name = name
         self.objects = objects
         self.mapSize = mapSize
+        self.canvasHeight = canvasHeight
         self.updatedAt = updatedAt
     }
 
-    private enum CodingKeys: String, CodingKey { case id, name, objects, mapSize, updatedAt }
+    private enum CodingKeys: String, CodingKey { case id, name, objects, mapSize, canvasHeight, updatedAt }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -699,6 +729,8 @@ private struct SavedMap: Identifiable, Codable {
         name = try container.decode(String.self, forKey: .name)
         objects = try container.decode([EditorObject].self, forKey: .objects)
         mapSize = try container.decodeIfPresent(MapSizeOption.self, forKey: .mapSize) ?? .small
+        // Maps saved before adaptive sizing used a fixed 650-point height.
+        canvasHeight = try container.decodeIfPresent(CGFloat.self, forKey: .canvasHeight) ?? 650
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
 }
